@@ -8,10 +8,9 @@ end
 
 module NameParser
   def parse(name)
-    p = NameParser::Person.parse(name)
-    return new(p.marshal_dump)
+    new(NameParser::Person.parse(name).marshal_dump)
   end
-  
+
   class Person < OpenStruct #Struct.new(:full_name, :first_name, :last_name, :middle_name, :greeting, :suffix, :designation, :nickname)
     @@greetings = {'dr' => 'Dr.', 'mr' => 'Mr.', 'mrs' => 'Mrs.', 'ms' => 'Ms.'}
     @@designations = {'cpa' => 'CPA', 'phd' => 'PhD', 'ms' => 'MS', 'pe' =>'P.E.', 'md' => 'MD', 'jd' => 'JD'}
@@ -35,8 +34,6 @@ module NameParser
       end
 
       tokens = name.split(/[,\s]+/)
-      phrases = name.split(',')
-
       designation = @@designations[tokens.last.downcase.tr('.','')]
       if !designation.nil?
         #tokens.pop
@@ -55,11 +52,9 @@ module NameParser
       suffix = @@suffices[tokens.last.downcase.tr('.','')]
       if !suffix.nil?
        trimmed = name.gsub(/[,\s]+#{tokens.last}/, '')
-       puts "EDIT: " + trimmed
-       #return
        p = parse(trimmed)
        p.suffix = suffix
-       return p 
+       return p
       end
 
       return parse2(name)
@@ -67,24 +62,23 @@ module NameParser
     end
 
     def self.parse2(name)
-      tmp = name
       tokens = name.split(/[,\s]+/)
       phrases = name.split(',')
-      
+
       greeting = @@greetings[tokens[0].downcase.tr('.','')]
       tokens.delete_at(0) unless greeting.nil?
 
       if greeting.nil?
         first = tokens[0].downcase
-        @@greetings.each {|k,v| 
+        @@greetings.each {|k,v|
           if first[0, v.length] == v.downcase
             greeting = v
-            tokens[0] = tokens[0][v.length..-1] 
+            tokens[0] = tokens[0][v.length..-1]
             break
           end
         }
       end
-     
+
 
       case tokens.length
       when 1
@@ -92,9 +86,9 @@ module NameParser
         catted = name.split('.')
         case catted.length
         when 1
-          p = Person.new(last_name: name)        
+          p = Person.new(last_name: name)
         else
-          p = Person.new(last_name: catted[-1], first_name: name.gsub(catted[-1], '')) 
+          p = Person.new(last_name: catted[-1], first_name: name.gsub(catted[-1], ''))
         end
       when 2
         if name.include?(',') #&& designation.nil?
@@ -125,7 +119,7 @@ module NameParser
             middle_tokens = []
             first_middle_tokens[1..2].each {|t| middle_tokens << t if t.split('.').join.length == 1 }
             first_tokens = first_middle_tokens - middle_tokens unless middle_tokens.blank?
-            
+
             unless first_tokens.blank?
               p = Person.new(:first_name => first_tokens.join(' '), :middle_name => middle_tokens.join(' '), :last_name => phrases[0])
             else
@@ -135,9 +129,7 @@ module NameParser
             raise "Could not parse #{name}"
           end
         else
-          #designation = phrases[1..-1].join(", ").squeeze(' ').strip
           p = Person.parse(phrases[0])
-          #raise "Could not parse #{name}" # John Spence, CCNA, CCA
         end
         Rails.logger.warn "Parsed 4 token name #{name} as #{p}"
       when 5
@@ -160,17 +152,14 @@ module NameParser
           end
         else
           raise "Could not parse #{name}"
-        end  
+        end
         Rails.logger.warn "Parsed 5 token name #{name} as #{p}"
       else
         raise "Could not parse #{name}"
       end
 
       p.greeting = greeting unless greeting.blank?
-      #p.designation = designation unless designation.blank?
-      #p.suffix = suffix unless suffix.blank?
-      #p.middle_name += '.' if  !p.middle_name.blank? && p.middle_name.length == 1
-      return p
+      p
     end
 
     def diff?(other_person)
@@ -209,7 +198,6 @@ module NameParser
       t['Smith, John, Jr.'] = p3e
 
 
-      p4 = Person.new(:first_name => 'John', :middle_name => 'Paul', :last_name => 'Smith', :designation => 'PhD')
       p4b = Person.new(:first_name => 'John', :middle_name => 'P.', :last_name => 'Smith', :designation => 'PhD')
       p4c = Person.new(:first_name => 'John', :middle_name => 'P.', :last_name => 'Smith', :suffix => 'Jr.')
       p4d = Person.new(:first_name => 'John', :middle_name => 'Paul', :last_name => 'Smith', :suffix => 'Jr.', :designation => "PhD")
@@ -245,15 +233,12 @@ module NameParser
 
       d1 = Person.new(:greeting => 'Dr.', :first_name => 'John', :middle_name => 'P.', :last_name => 'Smith', :suffix => 'Jr.')
       d1b = Person.new(:greeting => 'Dr.', :first_name => 'John', :last_name => 'Smith')
-      d1c = Person.new(:greeting => 'Dr.', :first_name => 'John', :middle_name => 'P.', :last_name => 'Smith')
-      d1d = Person.new()
       t['DR. John P. Smith, Jr.'] = d1
       t['Dr. John Smith'] = d1b
 
       p5a = Person.new(:first_name => 'Lillian', :middle_name => 'L.', :last_name => 'Van De Verg')
       p5b = Person.new(:first_name => 'Luis', :middle_name => 'M', :last_name => 'De La Maza')
       p5c = Person.new(:first_name => 'Maida', :middle_name => 'M', :last_name => 'De Las Alas')
-      p5d = Person.new(:first_name => 'Maida', :middle_name => 'M', :last_name => 'De Las Alas', :designation => "PhD")
 
       t['Van De Verg, Lillian L.'] = p5a
       t['De La Maza, Luis M'] = p5b
@@ -267,7 +252,7 @@ module NameParser
       n1b = Person.new(:first_name => 'John', :last_name => 'Smith', :nickname => 'Jake')
       t['J. P. ("Jake") Smith'] = n1
       t['John (Jake) Smith'] = n1b
-      
+
       #edgecases
       t['Mr. John Spence, CISSP, CCNA'] = Person.new(:first_name => 'John', :last_name => 'Spence', :designation => "CISSP, CCNA", :greeting => "Mr.")
       t['Mr.Bruce Hart'] = Person.new(first_name: 'Bruce', last_name: 'Hart', greeting: 'Mr.')
@@ -282,23 +267,23 @@ module NameParser
       #t['John Smith/Jane D.']
       #tests['John P. von Smith']
       #tests['J. von Smith']  #A. von Flotow
-      
+
       # BAD DATA
       # t['Mr. T im McKechnie']
 
       t.each {|full_name, person|
         begin
           parsed = Person.parse(full_name)
-        if person.diff?(parsed)
-          puts "'#{full_name}' failed as '#{parsed.to_s}'"
-          pp parsed
-          puts '----'
+          if person.diff?(parsed)
+            puts "'#{full_name}' failed as '#{parsed.to_s}'"
+            pp parsed
+            puts '----'
+            failed += 1
+          end
+        rescue Exception =>e
+          puts "'#{full_name}' failed with exception: #{e}" #\n#{e.backtrace}"
           failed += 1
         end
-      rescue Exception =>e
-        puts "'#{full_name}' failed with exception: #{e}" #\n#{e.backtrace}"
-        failed += 1
-      end
       }
 
       puts "#{failed} failed and #{t.keys.length-failed} succeeded"
@@ -307,4 +292,3 @@ module NameParser
     end
   end
 end
-
